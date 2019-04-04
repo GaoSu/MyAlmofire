@@ -25,32 +25,38 @@ protocol TaskConvertible {
 public typealias HTTPHeaders = [String: String]
 
 
+open class DownloadRequest: Request {
+    
+}
+
+
 open class Request{
     
     /// 一个监听上传或者下载进度的闭包
     public typealias ProspressHandler = (Progress) -> Void
     
     enum RequestTask {
-        case data(TaskConvertible?,URLSessionTask)
-        case download(TaskConvertible?,URLSessionTask)
-        case upload(TaskConvertible?,URLSessionTask)
-        case stream(TaskConvertible?,URLSessionTask)
+        case data(TaskConvertible?,URLSessionTask?)
+//        case download(TaskConvertible?,URLSessionTask?)
+//        case upload(TaskConvertible?,URLSessionTask?)
+//        case stream(TaskConvertible?,URLSessionTask?)
     }
     
-    private var taskDelegate: TaskDelegate?
+    private var taskDelegate: TaskDelegate
     private var taskDelegateLock = NSLock()
     
+    /// The delegate for the underlying task.
     open internal(set) var delegate: TaskDelegate {
-        get{
-            taskDelegateLock.lock() ; defer {taskDelegateLock.unlock()}
-            return taskDelegate!
+        get {
+            taskDelegateLock.lock() ; defer { taskDelegateLock.unlock() }
+            return taskDelegate
         }
-        set{
-            taskDelegateLock.lock() ; defer {taskDelegateLock.unlock()}
+        set {
+            taskDelegateLock.lock() ; defer { taskDelegateLock.unlock() }
             taskDelegate = newValue
         }
     }
-    
+
     /// 底层的任务
     open var task: URLSessionTask? { return delegate.task}
     
@@ -71,14 +77,36 @@ open class Request{
     
     init(session: URLSession? = nil,requestTask: RequestTask,error: Error? = nil) {
         self.session = session
-//        switch requestTask {
-////        case .data(let originalTask, let task):
-////            taskDelegate =
-////        default:
-////            <#code#>
+        switch requestTask {
+        case .data(let originalTask, let task):
+            taskDelegate = DataTaskDelegate(task: task)
+            self.originalTask = originalTask
+//        case .download(let originalTask, let task):
+            
+//        default:
+//            print("other")
+        }
+        delegate.error = error
+        delegate.queue?.addOperation {
+            self.endTime = CFAbsoluteTimeGetCurrent()
         }
     }
     
+    @discardableResult
+    open func authenticate(user: String, password: String, persistence: URLCredential.Persistence = .forSession) -> Self {
+        let credential = URLCredential(user: user, password: password, persistence: persistence)
+
+    }
     
-    
+    @discardableResult
+    open func authenticate(usingCredential credential: URLCredential) -> Self {
+        delegate.
+    }
 }
+
+
+
+
+
+
+
