@@ -95,13 +95,52 @@ open class Request{
     @discardableResult
     open func authenticate(user: String, password: String, persistence: URLCredential.Persistence = .forSession) -> Self {
         let credential = URLCredential(user: user, password: password, persistence: persistence)
-
+        return authenticate(usingCredential: credential)
     }
     
     @discardableResult
     open func authenticate(usingCredential credential: URLCredential) -> Self {
-        delegate.
+        delegate.credential = credential
+        return self
     }
+    
+    open class func authorizationHeadler(user: String, password: String) -> (key: String, value: String)? {
+        guard let data = "\(user):\(password)".data(using: .utf8) else { return nil }
+        let credential = data.base64EncodedString(options: [])
+        return (key: "Authorization", value: "Basic\(credential)")
+    }
+    
+    open func resume() {
+        guard let task = task else { delegate.queue?.isSuspended = false;  return  }
+        if startTime == nil {
+            startTime = CFAbsoluteTimeGetCurrent()
+        }
+        task.resume()
+        NotificationCenter.default.post(name: Notification.Name.Task.DidResume, object: self, userInfo: [Notification.Key.Task: task])
+    }
+    
+    open func suspend() {
+        guard let task = task else { return }
+        task.suspend()
+        NotificationCenter.default.post(name: Notification.Name.Task.DidSuspend, object: self, userInfo: [Notification.Key.Task: task])
+    }
+    
+    open func cancel() {
+        guard let task = task else { return }
+        task.cancel()
+        NotificationCenter.default.post(name: Notification.Name.Task.DidCancel, object: self, userInfo: [Notification.Key.Task: task])
+    }
+}
+
+extension Request: CustomStringConvertible {
+    public var description: String {
+        var components: [String] = []
+        if let HTTPMethod = request?.httpMethod {
+            <#statements#>
+        }
+    }
+    
+    
 }
 
 

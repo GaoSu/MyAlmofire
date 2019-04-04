@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04A42D76225605CF005422BA /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04A42D75225605CF005422BA /* Notifications.swift */; };
 		5AEE64322188A01E009B93A7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AEE64312188A01E009B93A7 /* AppDelegate.swift */; };
 		5AEE64342188A01E009B93A7 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AEE64332188A01E009B93A7 /* ViewController.swift */; };
 		5AEE64372188A01E009B93A7 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 5AEE64352188A01E009B93A7 /* Main.storyboard */; };
@@ -37,6 +38,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		04A42D75225605CF005422BA /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		5AEE642E2188A01E009B93A7 /* MyAlmofire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyAlmofire.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5AEE64312188A01E009B93A7 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		5AEE64332188A01E009B93A7 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -146,6 +148,7 @@
 				5AEE64612188A0ED009B93A7 /* Request.swift */,
 				5AEE64632188A1D9009B93A7 /* SessionManager.swift */,
 				5AEE64652188A5E2009B93A7 /* TaskDelegate.swift */,
+				04A42D75225605CF005422BA /* Notifications.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -284,6 +287,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				04A42D76225605CF005422BA /* Notifications.swift in Sources */,
 				5AEE64662188A5E2009B93A7 /* TaskDelegate.swift in Sources */,
 				5AEE64342188A01E009B93A7 /* ViewController.swift in Sources */,
 				5AEE64622188A0ED009B93A7 /* Request.swift in Sources */,

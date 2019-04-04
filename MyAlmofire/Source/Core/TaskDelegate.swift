@@ -30,6 +30,9 @@ open class TaskDelegate: NSObject{
         }
     }
     
+    var credential: URLCredential?
+    
+    
     func reset(){
         error = nil
         initialResponseTime = nil
@@ -67,7 +70,7 @@ open class TaskDelegate: NSObject{
             (dispostion, credential) = taskDidReceiveChallenge(session, task, chllenge)
         } else if chllenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust {
             let host = chllenge.protectionSpace.host
-//            if let serverTrustPolicy =
+//            if let serverÔTrustPolicy =
         }
       completionHandler(dispostion, credential)
     }
