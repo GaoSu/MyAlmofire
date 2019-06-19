@@ -93,7 +93,7 @@ class DataTaskDelegate: TaskDelegate,URLSessionDataDelegate {
     
     private var mutableData: Data?
     
-    var progressHandler: (closure: Request.ProspressHandler,queue: DispatchQueue)?
+    var progressHandler: (closure: Request.ProspressHandler, queue: DispatchQueue)?
     
     private var expectedContenLength: Int64 = 0
     
@@ -170,8 +170,55 @@ class DataTaskDelegate: TaskDelegate,URLSessionDataDelegate {
 }
 
 //MARK: -
-/*
-class DownloadTaskDelegate: TaskDelegate, URLSessionDownloadTask {
+
+class DownloadTaskDelegate: TaskDelegate, URLSessionDownloadDelegate {
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+       temporaryURL = location
+        guard let destination = destination, let response = downloadTask.response as? HTTPURLResponse else { return }
+        let result = destination(location, response)
+        let destinationURL = result.destinationURL
+        let options = result.options
+        self.destinationURL = destinationURL
+        do {
+            if options.contains(.removePreviousFile), FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+            if options.contains(.createIntermediateDirectories) {
+                let directory = destinationURL.deletingLastPathComponent()
+               try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+            }
+            try FileManager.default.moveItem(at: location, to: destinationURL)
+        } catch {
+            self.error = error
+        }
+    }
+    
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        if initialResponseTime == nil {
+            initialResponseTime = CFAbsoluteTimeGetCurrent()
+        }
+        if let downloadTaskDidWriteData = downloadTaskDidWriteData {
+            downloadTaskDidWriteData((session, downloadTask, bytesWritten, totalBytesWritten, totalBytesExpectedToWrite))
+        } else {
+            propress.totalUnitCount = totalBytesExpectedToWrite
+            propress.completedUnitCount = totalBytesWritten
+            if let progressHandler = propressHandler {
+                propressHandler?.queue.async {
+                    progressHandler.closure(self.propress)
+                }
+            }
+        }
+    }
+    
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didResumeAtOffset fileOffset: Int64, expectedTotalBytes: Int64) {
+        if let downloadTaskDidResumeAtOffset = downloadTaskDidResumeAtOffset {
+            downloadTaskDidResumeAtOffset((session, downloadTask, fileOffset, expectedTotalBytes))
+        } else {
+          propress.totalUnitCount = expectedTotalBytes
+            propress.completedUnitCount = fileOffset
+        }
+    }
+    
     //MARK: properties
     var downloadTask: URLSessionDownloadTask { return task as! URLSessionDownloadTask }
     
@@ -180,12 +227,26 @@ class DownloadTaskDelegate: TaskDelegate, URLSessionDownloadTask {
     
     var resumeData: Data?
     var data: Data? { return resumeData }
+    var destination: DownloadRequest.DownloadFileDestination?
+    var temporaryURL: URL?
+    var destinationURL: URL?
+    var fileURL: URL? { return destination != nil ? destinationURL : temporaryURL }
+    override init(task: URLSessionTask?) {
+        propress = Progress(totalUnitCount: 0)
+        super.init(task: task)
+    }
+    override func reset() {
+        super.reset()
+        propress = Progress(totalUnitCount: 0)
+        resumeData = nil
+    }
     
-//    var destination: downl = <#value#>
-    
+    var downloadTaskDidFinishDownloadingToURL: ((URLSession, URLSessionDownloadTask, URL) -> URL)?
+    var downloadTaskDidWriteData: (((URLSession, URLSessionDownloadTask, Int64, Int64, Int64)) -> Void)?
+    var downloadTaskDidResumeAtOffset: (((URLSession, URLSessionDownloadTask, Int64, Int64)) -> Void)?
     
 }
-*/
+
 
 
 

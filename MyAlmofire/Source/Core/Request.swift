@@ -8,9 +8,6 @@
 
 import Foundation
 
-public protocol RequestAdapter{
-    func adapt(_ urlRequest: URLRequest) throws -> URLRequest
-}
 
 public typealias RequestRetryCompltion = (_ shouldRetry: Bool, _ timeDelay: TimeInterval) -> Void
 
@@ -23,11 +20,6 @@ protocol TaskConvertible {
 }
 
 public typealias HTTPHeaders = [String: String]
-
-
-open class DownloadRequest: Request {
-    
-}
 
 
 open class Request{
@@ -132,20 +124,228 @@ open class Request{
     }
 }
 
+// MARK: - CustomStringConvertible
+
 extension Request: CustomStringConvertible {
     public var description: String {
         var components: [String] = []
         if let HTTPMethod = request?.httpMethod {
-            <#statements#>
+            components.append(HTTPMethod)
         }
+        if let urlString = request?.url?.absoluteString {
+            components.append(urlString)
+        }
+        return components.joined(separator: " ")
+    }
+}
+
+extension Request: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        return cURLRepresentation()
     }
     
+    func cURLRepresentation() -> String {
+        var components = ["$ curl -v"]
+        guard let request = self.request,
+            let url = request.url,
+            let host = url.host
+            else { return "$ curl command could not be created" }
+        if let httpMethod = request.httpMethod, httpMethod != "GET" {
+            components.append("-X \(httpMethod)")
+        }
+        if let credentialStorage = self.session?.configuration.urlCredentialStorage {
+            let protectionSpace = URLProtectionSpace(host: host, port: url.port ?? 0, protocol: url.scheme, realm: host, authenticationMethod: NSURLAuthenticationMethodHTTPBasic)
+            if let credentials = credentialStorage.credentials(for: protectionSpace)?.values {
+                for credential in credentials {
+                    guard let user = credential.user, let password = credential.password else {
+                        continue
+                    }
+                    components.append("-u \(user):\(password)")
+                }
+            } else {
+                if let credential = delegate.credential, let user = credential.user, let password = credential.password {
+                    components.append("-u \(user):\(password)")
+                }
+            }
+        }
+//        if session?.configuration.httpShouldSetCookies {
+//            if let cookieStot
+//        }
+        //MARK: TODO
+        return components.joined(separator: " \\\n\t")
+    }
     
 }
 
 
+// MARK: -
+///
+open class DataRequest: Request {
+    struct Requestable: TaskConvertible {
+        func task(session: URLSession, adapter: RequestAdapter, queue: DispatchQueue) throws -> URLSessionTask {
+            do {
+                let url = try self.urlRequest.adapt(using: adapter)
+                return queue.sync {
+                   session.dataTask(with: url)
+                }
+            } catch {
+                throw AdaptError(error: error)
+            }
+        }
+        
+        let urlRequest: URLRequest
+        
+    }
+    open override var request: URLRequest? {
+        if let request = super.request {
+            return request
+        }
+        if let requestable = originalTask as? Requestable {
+            return requestable.urlRequest
+        }
+        return nil
+    }
+    var dataDelegate: DataTaskDelegate { return delegate as! DataTaskDelegate}
+    open var progress: Progress { return dataDelegate.proress }
+    @discardableResult
+    open func stream(closure: ((Data) -> Void)? = nil) -> Self {
+        dataDelegate.dataStream = closure
+        return self
+    }
+    @discardableResult
+    open func downloadPropress(queue: DispatchQueue = DispatchQueue.main, closure: @escaping ProspressHandler) -> Self {
+        dataDelegate.progressHandler = (closure, queue) as (closure: Request.ProspressHandler, queue: DispatchQueue)
+        return self
+    }
+}
+// MARK: -
+open class DownloadRequest: Request {
+    public struct DownloadOptions: OptionSet {
+        public let rawValue: UInt
+        public static let createIntermediateDirectories = DownloadOptions(rawValue: 1 << 0)
+        public static let removePreviousFile = DownloadOptions(rawValue: 1 << 1)
+        public init(rawValue: UInt) {
+            self.rawValue = rawValue
+        }
+    }
+    public typealias DownloadFileDestination = (
+        _ temporaryURL: URL,
+        _ response: HTTPURLResponse) -> (destinationURL: URL, options: DownloadOptions)
+    
+    enum Downloadable: TaskConvertible {
+        case request(URLRequest)
+        case resumeData(Data)
+        
+        func task(session: URLSession, adapter: RequestAdapter, queue: DispatchQueue) throws -> URLSessionTask {
+            do {
+                let task: URLSessionTask
+                switch self {
+                case let .request(urlRequest):
+                    let urlRequest = try urlRequest.adapt(using: adapter)
+                    task = queue.sync {
+                        session.downloadTask(with: urlRequest)
+                    }
+                case let .resumeData(resumeData):
+                    task = queue.sync {
+                        session.downloadTask(withResumeData: resumeData)
+                    }
+                }
+                return task
+            } catch {
+                throw AdaptError(error: error)
+            }
+        }
+    }
+    
+    open override var request: URLRequest? {
+        if let request = super.request {
+            return request
+        }
+        if let downloadable = originalTask as? Downloadable, case let .request(urlRequest) = downloadable {
+            return urlRequest
+        }
+        return nil
+    }
+    
+    var downloadDelegate: DownloadTaskDelegate {
+        return delegate as! DownloadTaskDelegate
+    }
+    
+    open var resumeData: Data? { return downloadDelegate.resumeData }
+    
+    open var propress: Progress {
+        return downloadDelegate.propress
+    }
+    
+    open override func cancel() {
+        downloadDelegate.downloadTask.cancel { (data) in
+            self.downloadDelegate.resumeData = data
+        }
+        NotificationCenter.default.post(name: Notification.Name.Task.DidCancel, object: self, userInfo: [Notification.Key.Task: task as Any])
+    }
+    open func downloadPropress(queue: DispatchQueue = DispatchQueue.main, closure: @escaping ProspressHandler) -> Self {
+        downloadDelegate.propressHandler = (closure, queue) as (closure: Request.ProspressHandler, queue: DispatchQueue)
+        return self
+    }
+    
+    open class func suggestDownloadDestination(for directory: FileManager.SearchPathDirectory = .documentDirectory, in domin: FileManager.SearchPathDomainMask = .userDomainMask) -> DownloadFileDestination {
+        return { temporaryURL, response in
+            let directoryURLs = FileManager.default.urls(for: directory, in: domin)
+            if !directoryURLs.isEmpty {
+                return (directoryURLs[0].appendingPathComponent(response.suggestedFilename!), [])
+            }
+            return (temporaryURL, [])
+        }
+    }
+    
+}
 
-
-
+//MARK: -
+open class UploadRequest: DataRequest {
+    enum Uploadable: TaskConvertible {
+        case data(Data, URLRequest)
+        case file(URL, URLRequest)
+        case stream(InputStream, URLRequest)
+        func task(session: URLSession, adapter: RequestAdapter, queue: DispatchQueue) throws -> URLSessionTask {
+            do {
+                let task: URLSessionTask
+                switch self {
+                case let .data(data, urlRequest):
+                    let urlRequest = try urlRequest.adapt(using: adapter)
+                    task = queue.sync {
+                        session.uploadTask(with: urlRequest, from: data)
+                    }
+                case let .file(url, urlRequest):
+                    let urlRequest = try urlRequest.adapt(using: adapter)
+                    task = queue.sync {
+                        session.uploadTask(with: urlRequest, fromFile: url)
+                    }
+                case let .stream(_, urlRequest):
+                    let urlRequest = try urlRequest.adapt(using: adapter)
+                    task = queue.sync {
+                        session.uploadTask(withStreamedRequest: urlRequest)
+                    }
+                }
+                return task
+                } catch  {
+                throw AdaptError(error: error)
+            }
+        }
+    }
+    open override var request: URLRequest? {
+        if let request = super.request {
+            return request
+        }
+        guard let uploadble = originalTask as? Uploadable else { return nil }
+        switch uploadble {
+        case .data(_, let urlRequest):
+            return urlRequest
+        case .file(_, let urlRequest):
+            return urlRequest
+        case .stream(_, let urlRequest):
+            return urlRequest
+        }
+    }
+}
 
 
