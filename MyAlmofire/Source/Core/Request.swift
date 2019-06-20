@@ -16,7 +16,7 @@ public protocol RequestRetrier{
 }
 
 protocol TaskConvertible {
-    func task(session: URLSession,adapter: RequestAdapter,queue: DispatchQueue) throws -> URLSessionTask
+    func task(session: URLSession, adapter: RequestAdapter?, queue: DispatchQueue) throws -> URLSessionTask
 }
 
 public typealias HTTPHeaders = [String: String]
@@ -29,8 +29,8 @@ open class Request{
     
     enum RequestTask {
         case data(TaskConvertible?,URLSessionTask?)
-//        case download(TaskConvertible?,URLSessionTask?)
-//        case upload(TaskConvertible?,URLSessionTask?)
+        case download(TaskConvertible?,URLSessionTask?)
+        case upload(TaskConvertible?,URLSessionTask?)
 //        case stream(TaskConvertible?,URLSessionTask?)
     }
     
@@ -66,17 +66,23 @@ open class Request{
     var endTime: CFAbsoluteTime?
     
     var validations: [() -> Void] = []
-    
-    init(session: URLSession? = nil,requestTask: RequestTask,error: Error? = nil) {
+  
+    init(session: URLSession? = nil, requestTask: RequestTask,error: Error? = nil) {
         self.session = session
         switch requestTask {
         case .data(let originalTask, let task):
             taskDelegate = DataTaskDelegate(task: task)
             self.originalTask = originalTask
-//        case .download(let originalTask, let task):
-            
-//        default:
-//            print("other")
+        case .download(let originalTask, let task):
+            taskDelegate = DownloadTaskDelegate(task: task)
+            self.originalTask = originalTask
+        case .upload(let originalTask, let task):
+            taskDelegate = UploadTaskDelegate(task: task)
+            self.originalTask = originalTask
+//        case .stream(let originalTask, let task):
+//            taskDelegate = taskDelegate
+        default:
+            print("other")
         }
         delegate.error = error
         delegate.queue?.addOperation {
@@ -182,7 +188,9 @@ extension Request: CustomDebugStringConvertible {
 ///
 open class DataRequest: Request {
     struct Requestable: TaskConvertible {
-        func task(session: URLSession, adapter: RequestAdapter, queue: DispatchQueue) throws -> URLSessionTask {
+        
+        
+        func task(session: URLSession, adapter: RequestAdapter?, queue: DispatchQueue) throws -> URLSessionTask {
             do {
                 let url = try self.urlRequest.adapt(using: adapter)
                 return queue.sync {
@@ -220,6 +228,7 @@ open class DataRequest: Request {
 }
 // MARK: -
 open class DownloadRequest: Request {
+    
     public struct DownloadOptions: OptionSet {
         public let rawValue: UInt
         public static let createIntermediateDirectories = DownloadOptions(rawValue: 1 << 0)
@@ -228,6 +237,7 @@ open class DownloadRequest: Request {
             self.rawValue = rawValue
         }
     }
+    
     public typealias DownloadFileDestination = (
         _ temporaryURL: URL,
         _ response: HTTPURLResponse) -> (destinationURL: URL, options: DownloadOptions)
@@ -236,7 +246,7 @@ open class DownloadRequest: Request {
         case request(URLRequest)
         case resumeData(Data)
         
-        func task(session: URLSession, adapter: RequestAdapter, queue: DispatchQueue) throws -> URLSessionTask {
+        func task(session: URLSession, adapter: RequestAdapter?, queue: DispatchQueue) throws -> URLSessionTask {
             do {
                 let task: URLSessionTask
                 switch self {
@@ -283,6 +293,7 @@ open class DownloadRequest: Request {
         }
         NotificationCenter.default.post(name: Notification.Name.Task.DidCancel, object: self, userInfo: [Notification.Key.Task: task as Any])
     }
+    @discardableResult
     open func downloadPropress(queue: DispatchQueue = DispatchQueue.main, closure: @escaping ProspressHandler) -> Self {
         downloadDelegate.propressHandler = (closure, queue) as (closure: Request.ProspressHandler, queue: DispatchQueue)
         return self
@@ -303,10 +314,7 @@ open class DownloadRequest: Request {
 //MARK: -
 open class UploadRequest: DataRequest {
     enum Uploadable: TaskConvertible {
-        case data(Data, URLRequest)
-        case file(URL, URLRequest)
-        case stream(InputStream, URLRequest)
-        func task(session: URLSession, adapter: RequestAdapter, queue: DispatchQueue) throws -> URLSessionTask {
+        func task(session: URLSession, adapter: RequestAdapter?, queue: DispatchQueue) throws -> URLSessionTask {
             do {
                 let task: URLSessionTask
                 switch self {
@@ -327,10 +335,15 @@ open class UploadRequest: DataRequest {
                     }
                 }
                 return task
-                } catch  {
+            } catch  {
                 throw AdaptError(error: error)
             }
         }
+        
+        case data(Data, URLRequest)
+        case file(URL, URLRequest)
+        case stream(InputStream, URLRequest)
+        
     }
     open override var request: URLRequest? {
         if let request = super.request {
@@ -346,6 +359,15 @@ open class UploadRequest: DataRequest {
             return urlRequest
         }
     }
+    var uploadDelegate: UploadTaskDelegate { return delegate as! UploadTaskDelegate}
+    open var uploadPropress: Progress { return uploadDelegate.uploadPropress }
+    //MARK: upload Propress
+    @discardableResult
+    open func uploadPropress(queue: DispatchQueue = DispatchQueue.main, closure: @escaping ProspressHandler) -> Self {
+        uploadDelegate.uploadPropressHandler = (closure, queue) as (closure: Request.ProspressHandler, queue: DispatchQueue)
+        return self
+    }
+    
 }
 
 

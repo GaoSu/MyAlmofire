@@ -247,7 +247,39 @@ class DownloadTaskDelegate: TaskDelegate, URLSessionDownloadDelegate {
     
 }
 
-
-
+//MARK: -
+class UploadTaskDelegate: DataTaskDelegate {
+    var uploadTask: URLSessionUploadTask { return task as! URLSessionUploadTask}
+    var uploadPropress: Progress
+    var uploadPropressHandler: (closure: Request.ProspressHandler, queue: DispatchQueue)?
+    //MARK: Lifecycle
+    override init(task: URLSessionTask?) {
+        uploadPropress = Progress(totalUnitCount: 0)
+        super.init(task: task)
+    }
+    override func reset() {
+        super.reset()
+        uploadPropress = Progress(totalUnitCount: 0)
+    }
+    //MARK: URLSessionTaskDelegate
+    var taskDidSendBodyData: ((URLSession, URLSessionTask, Int64, Int64, Int64) -> Void)?
+    func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+        if initialResponseTime == nil {
+            initialResponseTime = CFAbsoluteTimeGetCurrent()
+        }
+        if let taskDidSendBodyData = taskDidSendBodyData {
+            taskDidSendBodyData(session, task, bytesSent, totalBytesSent, totalBytesExpectedToSend)
+        } else {
+            uploadPropress.totalUnitCount = totalBytesExpectedToSend
+            uploadPropress.completedUnitCount = totalBytesSent
+            if uploadPropressHandler != nil {
+                uploadPropressHandler?.queue.async {
+                    self.uploadPropressHandler?.closure(self.uploadPropress)
+                }
+            }
+        }
+    }
+        
+}
 
 
