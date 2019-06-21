@@ -179,6 +179,7 @@ open class SessionManager{
         }
     }
     
+    //MARK: Download request
     @discardableResult
     open func download(_ url: URLConvertible, method: HTTPMethod = .get, parameters: Parameters? = nil, encoding: ParameterEncoding = URLEncoding.default, headers: HTTPHeaders? = nil, to destination: DownloadRequest.DownloadFileDestination? = nil) -> DownloadRequest {
         do {
@@ -200,6 +201,10 @@ open class SessionManager{
         }
     }
     
+    @discardableResult
+    open func download(resumingWith resumeData: Data, to destination: DownloadRequest.DownloadFileDestination? = nil) -> DownloadRequest {
+        return download(.resumeData(resumeData), to: destination)
+    }
     private func download(_ downloadable: DownloadRequest.Downloadable, to destination: DownloadRequest.DownloadFileDestination?) -> DownloadRequest {
         do {
             let task = try downloadable.task(session: session, adapter: adapter, queue: queue)
@@ -228,5 +233,132 @@ open class SessionManager{
             if startRequestImmediately { download.resume() }
         }
         return download
+    }
+    
+    //MARK: Upload Request
+    @discardableResult
+    open func upload(_ fileURL: URL, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil) -> UploadRequest {
+        do {
+            let urlRequest = try URLRequest(url: url, method: method, headers: headers)
+            return upload(fileURL, with: urlRequest)
+        } catch {
+            return upload(nil, failedWith: error)
+        }
+    }
+    
+    @discardableResult
+    open func upload(_ fileURL: URL, with urlRequest: URLRequestConvertible) -> UploadRequest {
+        do {
+            let urlRequest = try urlRequest.asURLRequest()
+            return upload(.file(fileURL, urlRequest))
+        } catch {
+            return upload(nil, failedWith: error)
+        }
+    }
+    
+    @discardableResult
+    open func upload(_ data: Data, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil) -> UploadRequest {
+        do {
+            let urlRequest = try URLRequest(url: url, method: method, headers: headers)
+            return upload(data, with: urlRequest)
+        } catch {
+            return upload(nil, failedWith: error)
+        }
+    }
+    
+    @discardableResult
+    open func upload(_ data: Data, with urlRequest: URLRequestConvertible) -> UploadRequest {
+        do {
+            let urlRequest = try urlRequest.asURLRequest()
+            return upload(.data(data, urlRequest))
+        } catch {
+            return upload(nil, failedWith: error)
+        }
+    }
+    
+    @discardableResult
+    open func upload(_ stream: InputStream, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil) -> UploadRequest {
+        do {
+            let urlRequest = try URLRequest(url: url, method: method, headers: headers)
+            return upload(stream, with: urlRequest)
+        } catch {
+            return upload(nil, failedWith: error)
+        }
+    }
+    
+    @discardableResult
+    open func upload(_ stream: InputStream, with urlRequest: URLRequestConvertible) -> UploadRequest {
+        do {
+            let urlRequest = try urlRequest.asURLRequest()
+            return upload(.stream(stream, urlRequest))
+        } catch {
+            return upload(nil, failedWith: error)
+        }
+    }
+    
+   
+    open func upload(multipartFromData: (MultipartFormData) -> Void, usingThreshould encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil, encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?) {
+        do {
+            let urlRequest = try URLRequest(url: url, method: method, headers: headers)
+            
+        } catch {
+            
+        }
+    }
+    
+    public func upload(multipartFromData: @escaping (MultipartFormData) -> Void, usingThreshould encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold, to urlRequest: URLRequestConvertible, encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?) {
+        DispatchQueue.global(qos: .utility).async {
+            let formData = MultipartFormData()
+            multipartFromData(formData)
+            var tempFileURL: URL?
+            do {
+                var urlRequestWithContentType = try urlRequest.asURLRequest()
+                urlRequestWithContentType.setValue(formData.contentType, forHTTPHeaderField: "Content-Type")
+                let isBackgroundSession = self.session.configuration.identifier != nil
+                if formData.contentLength < encodingMemoryThreshold && !isBackgroundSession {
+                    let data = try formData.encode()
+                    let encodingResult = MultipartFormDataEncodingResult.success(request: self.upload(data, with: urlRequestWithContentType), streamingFromDisk: false, streamFileURL: nil)
+                    
+                }
+                DispatchQueue.main.async {
+                    encodingCompletion(encodingResult)
+                }
+            } else {
+               let fileManager = FileManager.default
+                let tempDirectoryURL = tempFileURL?.appendPathComponent("org.alamofire.manager/multipart.form.data")
+                
+            }
+        }
+    }
+    
+    private func upload(_ uploadable: UploadRequest.Uploadable) -> UploadRequest {
+        do {
+            let task = try uploadable.task(session: session, adapter: adapter, queue: queue)
+            let upload = UploadRequest(session: session, requestTask: .upload(uploadable, task), error: nil)
+            if case let .stream(inputStream, _) = uploadable {
+                upload.delegate.taskNeedNewBodyStream = { _, _ in inputStream}
+            }
+            delegate[task] = upload
+            if startRequestImmediately {
+                upload.resume()
+            }
+            return upload
+        } catch {
+            return upload(uploadable, failedWith: error)
+        }
+    }
+    private func upload(_  uploadable: UploadRequest.Uploadable?, failedWith error: Error) -> UploadRequest {
+        var uploadTask: Request.RequestTask = .upload(nil, nil)
+        if let uploadable = uploadable {
+            uploadTask = .upload(uploadable, nil)
+        }
+        let underlyingError = error.underlyingAdaptError ?? error
+        let upload = UploadRequest(session: session, requestTask: uploadTask, error: underlyingError)
+        if let retrier = retrier, error is AdaptError {
+            //MARK: TODO
+        } else {
+            if startRequestImmediately { upload.resume()}
+        }
+        return upload
     }
 }

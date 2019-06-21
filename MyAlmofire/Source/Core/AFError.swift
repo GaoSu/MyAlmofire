@@ -19,6 +19,25 @@ public enum AFError: Error {
     }
     
     case invalidURL(url: URLConvertible)
+    public enum MultipartEncodingFailureReason {
+        case bodyPartURLInvalid(url: URL)
+        case bodyPartFilenameInvalid(in: URL)
+        case bodyPartFileNotReachable(at: URL)
+        case bodyPartFileNotReachableWithError(atURL: URL, error: Error)
+        case bodyPartFileIsDirectory(at: URL)
+        case bodyPartFileSizeNotAvailable(at: URL)
+        case bodyPartFileSizeQueryFailedWithError(forURL: URL, error: Error)
+        case bodyPartInputStreamCreationFailed(for: URL)
+        
+        case outputStreamCreationFailed(for: URL)
+        case outputStreamFileAlreadyExists(at: URL)
+        case outputStreamURLInvalid(url: URL)
+        case outputStreamWriteFailed(error: Error)
+        
+        case inputStreamReadFailed(error: Error)
+    }
+    
+    case multipartEncodingFailed(reason: MultipartEncodingFailureReason)
 }
 
 extension Error {

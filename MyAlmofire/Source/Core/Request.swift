@@ -189,7 +189,6 @@ extension Request: CustomDebugStringConvertible {
 open class DataRequest: Request {
     struct Requestable: TaskConvertible {
         
-        
         func task(session: URLSession, adapter: RequestAdapter?, queue: DispatchQueue) throws -> URLSessionTask {
             do {
                 let url = try self.urlRequest.adapt(using: adapter)
