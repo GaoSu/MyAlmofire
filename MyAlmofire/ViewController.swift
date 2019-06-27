@@ -13,6 +13,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 //        V4.7.3
+//        Alamofire.request
         // Do any additional setup after loading the view, typically from a nib.
     }
 

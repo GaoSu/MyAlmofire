@@ -132,6 +132,11 @@ public func upload(_ stream: InputStream, with urlRequest: URLRequestConvertible
 }
 
 //MARK: MultipartFormData
-public func upload(multipartFromData: (MultipartFormData) -> Void, usingThreshould encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil, encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?) {
-    
+public func upload(multipartFromData: @escaping(MultipartFormData) -> Void, usingThreshould encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil, encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?) {
+    return SessionManager.default.upload(multipartFromData: multipartFromData, usingThreshould: encodingMemoryThreshold, to: url, method: method, headers: headers, encodingCompletion: encodingCompletion)
 }
+
+public func upload(multipartFromData: @escaping(MultipartFormData) -> Void, usingThreshould encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold, to urlRequest: URLRequestConvertible, encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?) {
+    return SessionManager.default.upload(multipartFromData: multipartFromData, usingThreshould: encodingMemoryThreshold, to: urlRequest, encodingCompletion: encodingCompletion)
+}
+

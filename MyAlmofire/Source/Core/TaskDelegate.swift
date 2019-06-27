@@ -8,10 +8,10 @@
 
 import Foundation
 
-open class TaskDelegate: NSObject{
+open class TaskDelegate: NSObject {
     
     public let queue: OperationQueue?
-    
+    public var data: Data? { return nil }
     var error: Error?
     var initialResponseTime: CFAbsoluteTime?
     
@@ -32,12 +32,14 @@ open class TaskDelegate: NSObject{
     
     var credential: URLCredential?
     
+    var metrics: AnyObject?
+    
     
     func reset(){
         error = nil
         initialResponseTime = nil
     }
-    
+    //MARK: Lifecycle
     init(task: URLSessionTask?){
         _task = task
         self.queue = {
@@ -76,14 +78,14 @@ open class TaskDelegate: NSObject{
     }
 }
 
-class DataTaskDelegate: TaskDelegate,URLSessionDataDelegate {
+class DataTaskDelegate: TaskDelegate, URLSessionDataDelegate {
     var dataTask : URLSessionDataTask{ return task as! URLSessionDataTask}
     
     var dataStream: ((_ data: Data) -> Void)?
     
     var proress: Progress
     
-    var data: Data? {
+    override var data: Data? {
         if dataStream != nil{
             return nil
         }else{
@@ -226,7 +228,7 @@ class DownloadTaskDelegate: TaskDelegate, URLSessionDownloadDelegate {
     var propressHandler: (closure: Request.ProspressHandler, queue: DispatchQueue)?
     
     var resumeData: Data?
-    var data: Data? { return resumeData }
+    override var data: Data? { return resumeData }
     var destination: DownloadRequest.DownloadFileDestination?
     var temporaryURL: URL?
     var destinationURL: URL?

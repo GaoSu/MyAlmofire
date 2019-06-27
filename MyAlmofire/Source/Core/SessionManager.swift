@@ -75,8 +75,8 @@ open class SessionManager{
     public static let `default`: SessionManager = {
        let configuration = URLSessionConfiguration.default
         configuration.httpAdditionalHeaders = SessionManager.defaultHTTPHeaders
-        //MARK: TODO
-        return SessionManager()
+//        MARK: TODO
+        return SessionManager(configuration: configuration)
     }()
     
     public static let multipartFormDataEncodingMemoryThreshold: UInt64 = 10_000_000
@@ -160,7 +160,7 @@ open class SessionManager{
         let underlyingError = error.underlyingAdaptError ?? error
         let request = DataRequest(session: session, requestTask: requestTask, error: underlyingError)
         if let retrier = retrier, error is AdaptError {
-            //MARK: TODO 重新尝试
+            allowRetrier(retrier, toRetry: request, with: underlyingError)
         } else {
             if startRequestImmediately { request.resume() }
         }
@@ -297,15 +297,24 @@ open class SessionManager{
     }
     
    
-    open func upload(multipartFromData: (MultipartFormData) -> Void, usingThreshould encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil, encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?) {
+    open func upload(multipartFromData: @escaping (MultipartFormData) -> Void, usingThreshould encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil, encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?) {
         do {
             let urlRequest = try URLRequest(url: url, method: method, headers: headers)
-            
+            return upload(multipartFromData: multipartFromData, usingThreshould: encodingMemoryThreshold, to: urlRequest, encodingCompletion: encodingCompletion)
         } catch {
-            
+            DispatchQueue.main.sync {
+                encodingCompletion?(.failure(error))
+            }
         }
     }
     
+    /// 刘航withURLRequestConvertible
+    ///
+    /// - Parameters:
+    ///   - multipartFromData:
+    ///   - encodingMemoryThreshold:
+    ///   - urlRequest:
+    ///   - encodingCompletion:
     public func upload(multipartFromData: @escaping (MultipartFormData) -> Void, usingThreshould encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold, to urlRequest: URLRequestConvertible, encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?) {
         DispatchQueue.global(qos: .utility).async {
             let formData = MultipartFormData()
@@ -318,15 +327,52 @@ open class SessionManager{
                 if formData.contentLength < encodingMemoryThreshold && !isBackgroundSession {
                     let data = try formData.encode()
                     let encodingResult = MultipartFormDataEncodingResult.success(request: self.upload(data, with: urlRequestWithContentType), streamingFromDisk: false, streamFileURL: nil)
+                    DispatchQueue.main.async {
+                        encodingCompletion?(encodingResult)
+                    }
+                } else {
+                    let fileManager = FileManager.default
+                    let tempDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory())
                     
+                    let directoryURL = tempDirectoryURL.appendingPathComponent("org.alamofire.manager/multipart.form.data")
+                    
+                    let fileName = UUID().uuidString
+                    let fileURL = directoryURL.appendingPathComponent(fileName)
+                    tempFileURL = fileURL
+                    var directoryError: Error?
+                    self.queue.sync {
+                        do {
+                            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)
+                        } catch {
+                            directoryError = error
+                        }
+                    }
+                    if let directoryError = directoryError { throw directoryError}
+                    try formData.writeEncodedData(to: fileURL)
+                    let upload = self.upload(fileURL, with: urlRequestWithContentType)
+                    upload.delegate.queue?.addOperation {
+                        do {
+                            try FileManager.default.removeItem(at: fileURL)
+                        } catch {
+                            
+                        }
+                    }
+                    DispatchQueue.main.async {
+                        let encodingResult = MultipartFormDataEncodingResult.success(request: upload, streamingFromDisk: true, streamFileURL: fileURL)
+                        encodingCompletion?(encodingResult)
+                    }
+                }
+            } catch {
+                if let tempFileURL = tempFileURL {
+                    do {
+                        try FileManager.default.removeItem(at: tempFileURL)
+                    } catch {
+                        
+                    }
                 }
                 DispatchQueue.main.async {
-                    encodingCompletion(encodingResult)
+                    encodingCompletion?(.failure(error))
                 }
-            } else {
-               let fileManager = FileManager.default
-                let tempDirectoryURL = tempFileURL?.appendPathComponent("org.alamofire.manager/multipart.form.data")
-                
             }
         }
     }
@@ -355,10 +401,60 @@ open class SessionManager{
         let underlyingError = error.underlyingAdaptError ?? error
         let upload = UploadRequest(session: session, requestTask: uploadTask, error: underlyingError)
         if let retrier = retrier, error is AdaptError {
-            //MARK: TODO
+            allowRetrier(retrier, toRetry: upload, with: underlyingError)
         } else {
             if startRequestImmediately { upload.resume()}
         }
         return upload
+    }
+    
+    func retry(_ request: Request) -> Bool {
+        guard let originalTask = request.originalTask else { return false }
+        do {
+            let task = try originalTask.task(session: session, adapter: adapter, queue: queue)
+            if let originalTask = request.task {
+                delegate[originalTask] = nil
+            }
+            request.delegate.task = task
+            request.retryCount += 1
+            request.startTime = CFAbsoluteTimeGetCurrent()
+            request.endTime = nil
+            task.resume()
+            return true
+        } catch {
+            request.delegate.error = error.underlyingAdaptError ?? error
+            return false
+        }
+    }
+    
+    private func allowRetrier(_ retrier: RequestRetrier, toRetry request: Request, with error: Error) {
+        DispatchQueue.utility.async { [weak self] in
+            guard let strongSelf = self else {
+                return
+            }
+            retrier.should(strongSelf, retry: request, with: error, completion: { (shouldRetry, timeDelay) in
+                guard let strongSelf = self else {
+                    return
+                }
+                guard shouldRetry else {
+                    if strongSelf.startRequestImmediately { request.resume() }
+                    return
+                }
+                DispatchQueue.utility.after(timeDelay, execute: {
+                    guard let strongSelf = self else {
+                        return
+                    }
+                    let retrySucceeded = strongSelf.retry(request)
+                    
+                    if retrySucceeded, let task = request.task {
+                        strongSelf.delegate[task] = request
+                    } else {
+                        if strongSelf.startRequestImmediately {
+                            request.resume()
+                        }
+                    }
+                })
+            })
+        }
     }
 }

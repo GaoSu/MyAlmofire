@@ -10,9 +10,15 @@
 		04A42D76225605CF005422BA /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04A42D75225605CF005422BA /* Notifications.swift */; };
 		3D56F1D522BB6850000AE060 /* SessionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D56F1D422BB6850000AE060 /* SessionDelegate.swift */; };
 		3D56F1D822BB6931000AE060 /* ServerTrustPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D56F1D722BB6931000AE060 /* ServerTrustPolicy.swift */; };
+		3DAC35F322C0C687006FBC84 /* DispatchQueue+Alamofire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DAC35F222C0C687006FBC84 /* DispatchQueue+Alamofire.swift */; };
+		3DAC361822C0D429006FBC84 /* ResponseSerialization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DAC361722C0D429006FBC84 /* ResponseSerialization.swift */; };
+		3DAC361A22C0D510006FBC84 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DAC361922C0D510006FBC84 /* Result.swift */; };
+		3DAC361C22C0DC19006FBC84 /* Response.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DAC361B22C0DC19006FBC84 /* Response.swift */; };
+		3DAC361E22C0DDC3006FBC84 /* Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DAC361D22C0DDC3006FBC84 /* Timeline.swift */; };
 		3DCBF0D722BA0F1A00D903CE /* Alamofire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DCBF0D622BA0F1A00D903CE /* Alamofire.swift */; };
 		3DCBF0D922BA123A00D903CE /* AFError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DCBF0D822BA123A00D903CE /* AFError.swift */; };
 		3DD6275122BB2CFB00B25069 /* ParameterEncoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DD6275022BB2CFB00B25069 /* ParameterEncoding.swift */; };
+		3DDE0CCD22C49DB4003F2000 /* NetworkReachabilityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DDE0CCC22C49DB4003F2000 /* NetworkReachabilityManager.swift */; };
 		3DE94D7722BC76D50014D78F /* MultipartFormData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE94D7622BC76D50014D78F /* MultipartFormData.swift */; };
 		5AEE64322188A01E009B93A7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AEE64312188A01E009B93A7 /* AppDelegate.swift */; };
 		5AEE64342188A01E009B93A7 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AEE64332188A01E009B93A7 /* ViewController.swift */; };
@@ -47,9 +53,15 @@
 		04A42D75225605CF005422BA /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		3D56F1D422BB6850000AE060 /* SessionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDelegate.swift; sourceTree = "<group>"; };
 		3D56F1D722BB6931000AE060 /* ServerTrustPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerTrustPolicy.swift; sourceTree = "<group>"; };
+		3DAC35F222C0C687006FBC84 /* DispatchQueue+Alamofire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispatchQueue+Alamofire.swift"; sourceTree = "<group>"; };
+		3DAC361722C0D429006FBC84 /* ResponseSerialization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseSerialization.swift; sourceTree = "<group>"; };
+		3DAC361922C0D510006FBC84 /* Result.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Result.swift; sourceTree = "<group>"; };
+		3DAC361B22C0DC19006FBC84 /* Response.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Response.swift; sourceTree = "<group>"; };
+		3DAC361D22C0DDC3006FBC84 /* Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Timeline.swift; sourceTree = "<group>"; };
 		3DCBF0D622BA0F1A00D903CE /* Alamofire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Alamofire.swift; sourceTree = "<group>"; };
 		3DCBF0D822BA123A00D903CE /* AFError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AFError.swift; sourceTree = "<group>"; };
 		3DD6275022BB2CFB00B25069 /* ParameterEncoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParameterEncoding.swift; sourceTree = "<group>"; };
+		3DDE0CCC22C49DB4003F2000 /* NetworkReachabilityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkReachabilityManager.swift; sourceTree = "<group>"; };
 		3DE94D7622BC76D50014D78F /* MultipartFormData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipartFormData.swift; sourceTree = "<group>"; };
 		5AEE642E2188A01E009B93A7 /* MyAlmofire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyAlmofire.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5AEE64312188A01E009B93A7 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -99,8 +111,19 @@
 			children = (
 				3D56F1D722BB6931000AE060 /* ServerTrustPolicy.swift */,
 				3DE94D7622BC76D50014D78F /* MultipartFormData.swift */,
+				3DAC361722C0D429006FBC84 /* ResponseSerialization.swift */,
+				3DAC361D22C0DDC3006FBC84 /* Timeline.swift */,
+				3DDE0CCC22C49DB4003F2000 /* NetworkReachabilityManager.swift */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		3DAC35F122C0C655006FBC84 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				3DAC35F222C0C687006FBC84 /* DispatchQueue+Alamofire.swift */,
+			);
+			path = Extensions;
 			sourceTree = "<group>";
 		};
 		5AEE64252188A01E009B93A7 = {
@@ -158,6 +181,7 @@
 		5AEE645F2188A0B8009B93A7 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				3DAC35F122C0C655006FBC84 /* Extensions */,
 				3D56F1D622BB690D000AE060 /* Features */,
 				5AEE64602188A0CE009B93A7 /* Core */,
 				3DCBF0D622BA0F1A00D903CE /* Alamofire.swift */,
@@ -175,6 +199,8 @@
 				3DCBF0D822BA123A00D903CE /* AFError.swift */,
 				3DD6275022BB2CFB00B25069 /* ParameterEncoding.swift */,
 				3D56F1D422BB6850000AE060 /* SessionDelegate.swift */,
+				3DAC361922C0D510006FBC84 /* Result.swift */,
+				3DAC361B22C0DC19006FBC84 /* Response.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -318,7 +344,13 @@
 				04A42D76225605CF005422BA /* Notifications.swift in Sources */,
 				3DCBF0D922BA123A00D903CE /* AFError.swift in Sources */,
 				5AEE64662188A5E2009B93A7 /* TaskDelegate.swift in Sources */,
+				3DAC361822C0D429006FBC84 /* ResponseSerialization.swift in Sources */,
+				3DAC361A22C0D510006FBC84 /* Result.swift in Sources */,
 				5AEE64342188A01E009B93A7 /* ViewController.swift in Sources */,
+				3DAC361C22C0DC19006FBC84 /* Response.swift in Sources */,
+				3DAC35F322C0C687006FBC84 /* DispatchQueue+Alamofire.swift in Sources */,
+				3DDE0CCD22C49DB4003F2000 /* NetworkReachabilityManager.swift in Sources */,
+				3DAC361E22C0DDC3006FBC84 /* Timeline.swift in Sources */,
 				3DE94D7722BC76D50014D78F /* MultipartFormData.swift in Sources */,
 				3D56F1D822BB6931000AE060 /* ServerTrustPolicy.swift in Sources */,
 				5AEE64622188A0ED009B93A7 /* Request.swift in Sources */,
